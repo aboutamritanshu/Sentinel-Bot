@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sentinel_postgres
+    environment:
+      POSTGRES_DB: sentinel_ai
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - sentinel_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: sentinel_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sentinel_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  sentinel_ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sentinel_ai
+    environment:
+      - DATABASE_URL=postgresql://sentinel:sentinel_password@postgres:5432/sentinel_ai
+      - REDIS_URL=redis://redis:6379
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PORT=3000
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - sentinel_network
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  sentinel_network:
+    driver: bridge

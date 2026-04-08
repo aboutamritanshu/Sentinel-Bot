@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  discordId     String   @unique
+  violationScore Int     @default(0)
+  warnings      Int      @default(0)
+  timeouts      Int      @default(0)
+  isBanned      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  
+  violations   Violation[]
+  reportsMade   Report[]  @relation("Reporter")
+  reportsReceived Report[] @relation("Reported")
+  tickets       Ticket[]
+  
+  @@map("users")
+}
+
+model Violation {
+  id           String   @id @default(cuid())
+  userId       String
+  content      String
+  severityScore Float
+  action       String
+  createdAt    DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("violations")
+}
+
+model Report {
+  id            String   @id @default(cuid())
+  reporterId    String
+  reportedUserId String
+  aiVerdict     Json?
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  
+  reporter      User     @relation("Reporter", fields: [reporterId], references: [id])
+  reportedUser  User     @relation("Reported", fields: [reportedUserId], references: [id])
+  
+  @@map("reports")
+}
+
+model Ticket {
+  id          String    @id @default(cuid())
+  creatorId   String
+  channelId   String    @unique
+  category    String
+  aiSummary   Json?
+  status      String    @default("open")
+  createdAt   DateTime  @default(now())
+  closedAt    DateTime?
+  
+  creator     User      @relation(fields: [creatorId], references: [id])
+  
+  @@map("tickets")
+}
+
+model ServerConfig {
+  id                  String   @id @default(cuid())
+  guildId             String   @unique
+  warningThreshold    Float    @default(10)
+  timeoutThreshold    Float    @default(25)
+  banThreshold        Float    @default(50)
+  wordScoringConfig   Json     @default("{}")
+  escalationConfig    Json     @default("{}")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@map("server_configs")
+}
