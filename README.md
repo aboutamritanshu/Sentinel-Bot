@@ -277,4 +277,4 @@ For support and questions:
 - OpenAI for the powerful AI capabilities
 - Discord.js team for the excellent library
 - Prisma for the modern database toolkit
-- The open-source community for inspiration and tools
+- The open source community for inspiration and tools
